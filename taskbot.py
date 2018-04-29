@@ -133,7 +133,6 @@ class TasksController:
                 task = query.one()
             except sqlalchemy.orm.exc.NoResultFound:
                 return "_404_ Task {} not found x.x".format(task_id)
-                
             for dependency in task.dependencies.split(',')[:-1]:
                 query = db.session.query(Task).filter_by(id=int(dependency), chat=chat)
                 dependency = query.one()
@@ -141,6 +140,20 @@ class TasksController:
             db.session.delete(task)
             db.session.commit()
             return "Task [[{}]] deleted".format(task_id)
+
+    def move_todo(self, msg, chat):
+        if not msg.isdigit():
+            return "You must inform the task id"
+        else:
+            task_id = int(msg)
+            query = db.session.query(Task).filter_by(id=task_id, chat=chat)
+            try:
+                task = query.one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                return "_404_ Task {} not found x.x".format(task_id)
+            task.status = 'TODO'
+            db.session.commit()
+            return "*TODO* task [[{}]] {}".format(task.id, task.name)
 
     def handle_updates(self, updates):
         for update in updates["result"]:
@@ -178,19 +191,8 @@ class TasksController:
                 self.api.send_message(response, chat)
 
             elif command == '/todo':
-                if not msg.isdigit():
-                    self.api.send_message("You must inform the task id", chat)
-                else:
-                    task_id = int(msg)
-                    query = db.session.query(Task).filter_by(id=task_id, chat=chat)
-                    try:
-                        task = query.one()
-                    except sqlalchemy.orm.exc.NoResultFound:
-                        self.api.send_message("_404_ Task {} not found x.x".format(task_id), chat)
-                        return
-                    task.status = 'TODO'
-                    db.session.commit()
-                    self.api.send_message("*TODO* task [[{}]] {}".format(task.id, task.name), chat)
+                response = self.move_todo(msg, chat)
+                self.api.send_message(response, chat)
 
             elif command == '/doing':
                 if not msg.isdigit():
