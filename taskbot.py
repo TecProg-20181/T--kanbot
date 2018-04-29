@@ -75,6 +75,31 @@ class TasksController:
         db.session.commit()
         return "New task *TODO* [[{}]] {}".format(task.id, task.name)
 
+    def rename_task(self, msg, chat):
+        text = ''
+        if msg != '':
+            if len(msg.split(' ', 1)) > 1:
+                text = msg.split(' ', 1)[1]
+            msg = msg.split(' ', 1)[0]
+
+        if not msg.isdigit():
+            return "You must inform the task id"
+        else:
+            task_id = int(msg)
+            query = db.session.query(Task).filter_by(id=task_id, chat=chat)
+            try:
+                task = query.one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                return "_404_ Task {} not found x.x".format(task_id)
+
+            if text == '':
+                return "You want to modify task {}, but you didn't provide any new text".format(task_id)
+                
+            old_text = task.name
+            task.name = text
+            db.session.commit()
+            return "Task {} redefined from {} to {}".format(task_id, old_text, text)
+
     def handle_updates(self, updates):
         for update in updates["result"]:
             if 'message' in update:
@@ -99,31 +124,9 @@ class TasksController:
                 self.api.send_message(response, chat)
 
             elif command == '/rename':
-                text = ''
-                if msg != '':
-                    if len(msg.split(' ', 1)) > 1:
-                        text = msg.split(' ', 1)[1]
-                    msg = msg.split(' ', 1)[0]
+                response = self.rename_task(msg, chat)
+                self.api.send_message(response, chat)
 
-                if not msg.isdigit():
-                    self.api.send_message("You must inform the task id", chat)
-                else:
-                    task_id = int(msg)
-                    query = db.session.query(Task).filter_by(id=task_id, chat=chat)
-                    try:
-                        task = query.one()
-                    except sqlalchemy.orm.exc.NoResultFound:
-                        self.api.send_message("_404_ Task {} not found x.x".format(task_id), chat)
-                        return
-
-                    if text == '':
-                        self.api.send_message("You want to modify task {}, but you didn't provide any new text".format(task_id), chat)
-                        return
-
-                    old_text = task.name
-                    task.name = text
-                    db.session.commit()
-                    self.api.send_message("Task {} redefined from {} to {}".format(task_id, old_text, text), chat)
             elif command == '/duplicate':
                 if not msg.isdigit():
                     self.api.send_message("You must inform the task id", chat)
