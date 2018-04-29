@@ -266,6 +266,34 @@ class TasksController:
             db.session.commit()
             return "Task {} dependencies up to date".format(task_id)
 
+    def set_priority(self, msg, chat):
+        text = ''
+        if msg != '':
+            if len(msg.split(' ', 1)) > 1:
+                text = msg.split(' ', 1)[1]
+            msg = msg.split(' ', 1)[0]
+
+        if not msg.isdigit():
+            return "You must inform the task id"
+        else:
+            task_id = int(msg)
+            query = db.session.query(Task).filter_by(id=task_id, chat=chat)
+            try:
+                task = query.one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                return "_404_ Task {} not found x.x".format(task_id)
+
+            if text == '':
+                task.priority = ''
+                return "_Cleared_ all priorities from task {}".format(task_id)
+            else:
+                if text.lower() not in ['high', 'medium', 'low']:
+                    return "The priority *must be* one of the following: high, medium, low"
+                else:
+                    task.priority = text.lower()
+                    return "*Task {}* priority has priority *{}*".format(task_id, text.lower())
+            db.session.commit()
+
     def handle_updates(self, updates):
         for update in updates["result"]:
             if 'message' in update:
@@ -288,69 +316,34 @@ class TasksController:
             if command == '/new':
                 response = self.new_task(msg, chat)
                 self.api.send_message(response, chat)
-
             elif command == '/rename':
                 response = self.rename_task(msg, chat)
                 self.api.send_message(response, chat)
-
             elif command == '/duplicate':
                 response = self.duplicate_task(msg, chat)
                 self.api.send_message(response, chat)
-
             elif command == '/delete':
                 response = self.delete_task(msg, chat)
                 self.api.send_message(response, chat)
-
             elif command == '/todo':
                 response = self.move_todo(msg, chat)
                 self.api.send_message(response, chat)
-
             elif command == '/doing':
                 response = self.move_doing(msg, chat)
                 self.api.send_message(response, chat)
-
             elif command == '/done':
                 response = self.move_done(msg, chat)
                 self.api.send_message(response, chat)
-
             elif command == '/list':
                 response = self.list_tasks(msg, chat)
                 self.api.send_message(response[0], chat)
                 self.api.send_message(response[1], chat)
-
             elif command == '/dependson':
                 response = self.depends_on(msg, chat)
                 self.api.send_message(response, chat)
-
             elif command == '/priority':
-                text = ''
-                if msg != '':
-                    if len(msg.split(' ', 1)) > 1:
-                        text = msg.split(' ', 1)[1]
-                    msg = msg.split(' ', 1)[0]
-
-                if not msg.isdigit():
-                    self.api.send_message("You must inform the task id", chat)
-                else:
-                    task_id = int(msg)
-                    query = db.session.query(Task).filter_by(id=task_id, chat=chat)
-                    try:
-                        task = query.one()
-                    except sqlalchemy.orm.exc.NoResultFound:
-                        self.api.send_message("_404_ Task {} not found x.x".format(task_id), chat)
-                        return
-
-                    if text == '':
-                        task.priority = ''
-                        self.api.send_message("_Cleared_ all priorities from task {}".format(task_id), chat)
-                    else:
-                        if text.lower() not in ['high', 'medium', 'low']:
-                            self.api.send_message("The priority *must be* one of the following: high, medium, low", chat)
-                        else:
-                            task.priority = text.lower()
-                            self.api.send_message("*Task {}* priority has priority *{}*".format(task_id, text.lower()), chat)
-                    db.session.commit()
-
+                response = self.set_priority(msg, chat)
+                self.api.send_message(response, chat)
             elif command == '/start':
                 self.api.send_message("Welcome! Here is a list of things you can do.", chat)
                 self.api.send_message(self.api.HELP, chat)
