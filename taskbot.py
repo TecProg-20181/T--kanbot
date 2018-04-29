@@ -169,6 +169,56 @@ class TasksController:
             db.session.commit()
             return "*DOING* task [[{}]] {}".format(task.id, task.name)
 
+    def move_done(self, msg, chat):
+        if not msg.isdigit():
+            return "You must inform the task id"
+        else:
+            task_id = int(msg)
+            query = db.session.query(Task).filter_by(id=task_id, chat=chat)
+            try:
+                task = query.one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                return "_404_ Task {} not found x.x".format(task_id)
+            task.status = 'DONE'
+            db.session.commit()
+            return "*DONE* task [[{}]] {}".format(task.id, task.name)
+
+    def list_tasks(self, msg, chat):
+        task_list = ''
+        tasks_by_status = ''
+        list_messages = []
+
+        task_list += '\U0001F4CB Task List\n'
+        query = db.session.query(Task).filter_by(parents='', chat=chat).order_by(Task.id)
+        for task in query.all():
+            icon = '\U0001F195'
+            if task.status == 'DOING':
+                icon = '\U000023FA'
+            elif task.status == 'DONE':
+                icon = '\U00002611'
+
+            task_list += '[[{}]] {} {}\n'.format(task.id, icon, task.name)
+            task_list += deps_text(task, chat)
+        
+        list_messages.append(task_list)
+
+        tasks_by_status += '\U0001F4DD _Status_\n'
+        query = db.session.query(Task).filter_by(status='TODO', chat=chat).order_by(Task.id)
+        tasks_by_status += '\n\U0001F195 *TODO*\n'
+        for task in query.all():
+            tasks_by_status += '[[{}]] {}\n'.format(task.id, task.name)
+        query = db.session.query(Task).filter_by(status='DOING', chat=chat).order_by(Task.id)
+        tasks_by_status += '\n\U000023FA *DOING*\n'
+        for task in query.all():
+            tasks_by_status += '[[{}]] {}\n'.format(task.id, task.name)
+        query = db.session.query(Task).filter_by(status='DONE', chat=chat).order_by(Task.id)
+        tasks_by_status += '\n\U00002611 *DONE*\n'
+        for task in query.all():
+            tasks_by_status += '[[{}]] {}\n'.format(task.id, task.name)
+
+        list_messages.append(tasks_by_status)
+        return list_messages
+
     def handle_updates(self, updates):
         for update in updates["result"]:
             if 'message' in update:
@@ -213,53 +263,14 @@ class TasksController:
                 self.api.send_message(response, chat)
 
             elif command == '/done':
-                if not msg.isdigit():
-                    self.api.send_message("You must inform the task id", chat)
-                else:
-                    task_id = int(msg)
-                    query = db.session.query(Task).filter_by(id=task_id, chat=chat)
-                    try:
-                        task = query.one()
-                    except sqlalchemy.orm.exc.NoResultFound:
-                        self.api.send_message("_404_ Task {} not found x.x".format(task_id), chat)
-                        return
-                    task.status = 'DONE'
-                    db.session.commit()
-                    self.api.send_message("*DONE* task [[{}]] {}".format(task.id, task.name), chat)
+                response = self.move_done(msg, chat)
+                self.api.send_message(response, chat)
 
             elif command == '/list':
-                task_list = ''
+                response = self.list_tasks(msg, chat)
+                self.api.send_message(response[0], chat)
+                self.api.send_message(response[1], chat)
 
-                task_list += '\U0001F4CB Task List\n'
-                query = db.session.query(Task).filter_by(parents='', chat=chat).order_by(Task.id)
-                for task in query.all():
-                    icon = '\U0001F195'
-                    if task.status == 'DOING':
-                        icon = '\U000023FA'
-                    elif task.status == 'DONE':
-                        icon = '\U00002611'
-
-                    task_list += '[[{}]] {} {}\n'.format(task.id, icon, task.name)
-                    task_list += deps_text(task, chat)
-
-                self.api.send_message(task_list, chat)
-                tasks_by_status = ''
-
-                tasks_by_status += '\U0001F4DD _Status_\n'
-                query = db.session.query(Task).filter_by(status='TODO', chat=chat).order_by(Task.id)
-                tasks_by_status += '\n\U0001F195 *TODO*\n'
-                for task in query.all():
-                    tasks_by_status += '[[{}]] {}\n'.format(task.id, task.name)
-                query = db.session.query(Task).filter_by(status='DOING', chat=chat).order_by(Task.id)
-                tasks_by_status += '\n\U000023FA *DOING*\n'
-                for task in query.all():
-                    tasks_by_status += '[[{}]] {}\n'.format(task.id, task.name)
-                query = db.session.query(Task).filter_by(status='DONE', chat=chat).order_by(Task.id)
-                tasks_by_status += '\n\U00002611 *DONE*\n'
-                for task in query.all():
-                    tasks_by_status += '[[{}]] {}\n'.format(task.id, task.name)
-
-                self.api.send_message(tasks_by_status, chat)
             elif command == '/dependson':
                 text = ''
                 if msg != '':
