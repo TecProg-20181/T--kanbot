@@ -69,6 +69,12 @@ class TasksController:
     def __init__(self, api):
         self.api = api
 
+    def new_task(self, msg, chat):
+        task = Task(chat=chat, name=msg, status='TODO', dependencies='', parents='', priority='')
+        db.session.add(task)
+        db.session.commit()
+        return "New task *TODO* [[{}]] {}".format(task.id, task.name)
+
     def handle_updates(self, updates):
         for update in updates["result"]:
             if 'message' in update:
@@ -89,10 +95,8 @@ class TasksController:
             print(command, msg, chat)
 
             if command == '/new':
-                task = Task(chat=chat, name=msg, status='TODO', dependencies='', parents='', priority='')
-                db.session.add(task)
-                db.session.commit()
-                self.api.send_message("New task *TODO* [[{}]] {}".format(task.id, task.name), chat)
+                response = self.new_task(msg, chat)
+                self.api.send_message(response, chat)
 
             elif command == '/rename':
                 text = ''
