@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 import json
-import requests
 import time
 import urllib
 
+import requests
 import sqlalchemy
 
 import db
@@ -39,15 +39,15 @@ def get_url(url):
 
 def get_json_from_url(url):
     content = get_url(url)
-    js = json.loads(content)
-    return js
+    json_response = json.loads(content)
+    return json_response
 
 def get_updates(offset=None):
     url = URL + "getUpdates?timeout=100"
     if offset:
         url += "&offset={}".format(offset)
-    js = get_json_from_url(url)
-    return js
+    json_response = get_json_from_url(url)
+    return json_response
 
 def send_message(text, chat_id, reply_markup=None):
     text = urllib.parse.quote_plus(text)
@@ -156,10 +156,10 @@ def handle_updates(updates):
                              parents=task.parents, priority=task.priority, duedate=task.duedate)
                 db.session.add(dtask)
 
-                for t in task.dependencies.split(',')[:-1]:
-                    qy = db.session.query(Task).filter_by(id=int(t), chat=chat)
-                    t = qy.one()
-                    t.parents += '{},'.format(dtask.id)
+                for dependency in task.dependencies.split(',')[:-1]:
+                    query = db.session.query(Task).filter_by(id=int(dependency), chat=chat)
+                    dependency = query.one()
+                    dependency.parents += '{},'.format(dtask.id)
 
                 db.session.commit()
                 send_message("New task *TODO* [[{}]] {}".format(dtask.id, dtask.name), chat)
@@ -175,10 +175,10 @@ def handle_updates(updates):
                 except sqlalchemy.orm.exc.NoResultFound:
                     send_message("_404_ Task {} not found x.x".format(task_id), chat)
                     return
-                for t in task.dependencies.split(',')[:-1]:
-                    qy = db.session.query(Task).filter_by(id=int(t), chat=chat)
-                    t = qy.one()
-                    t.parents = t.parents.replace('{},'.format(task.id), '')
+                for dependency in task.dependencies.split(',')[:-1]:
+                    query = db.session.query(Task).filter_by(id=int(dependency), chat=chat)
+                    dependency = query.one()
+                    dependency.parents = dependency.parents.replace('{},'.format(task.id), '')
                 db.session.delete(task)
                 db.session.commit()
                 send_message("Task [[{}]] deleted".format(task_id), chat)
@@ -229,9 +229,9 @@ def handle_updates(updates):
                 send_message("*DONE* task [[{}]] {}".format(task.id, task.name), chat)
 
         elif command == '/list':
-            a = ''
+            task_list = ''
 
-            a += '\U0001F4CB Task List\n'
+            task_list += '\U0001F4CB Task List\n'
             query = db.session.query(Task).filter_by(parents='', chat=chat).order_by(Task.id)
             for task in query.all():
                 icon = '\U0001F195'
@@ -240,27 +240,27 @@ def handle_updates(updates):
                 elif task.status == 'DONE':
                     icon = '\U00002611'
 
-                a += '[[{}]] {} {}\n'.format(task.id, icon, task.name)
-                a += deps_text(task, chat)
+                task_list += '[[{}]] {} {}\n'.format(task.id, icon, task.name)
+                task_list += deps_text(task, chat)
 
-            send_message(a, chat)
-            a = ''
+            send_message(task_list, chat)
+            tasks_by_status = ''
 
-            a += '\U0001F4DD _Status_\n'
+            tasks_by_status += '\U0001F4DD _Status_\n'
             query = db.session.query(Task).filter_by(status='TODO', chat=chat).order_by(Task.id)
-            a += '\n\U0001F195 *TODO*\n'
+            tasks_by_status += '\n\U0001F195 *TODO*\n'
             for task in query.all():
-                a += '[[{}]] {}\n'.format(task.id, task.name)
+                tasks_by_status += '[[{}]] {}\n'.format(task.id, task.name)
             query = db.session.query(Task).filter_by(status='DOING', chat=chat).order_by(Task.id)
-            a += '\n\U000023FA *DOING*\n'
+            tasks_by_status += '\n\U000023FA *DOING*\n'
             for task in query.all():
-                a += '[[{}]] {}\n'.format(task.id, task.name)
+                tasks_by_status += '[[{}]] {}\n'.format(task.id, task.name)
             query = db.session.query(Task).filter_by(status='DONE', chat=chat).order_by(Task.id)
-            a += '\n\U00002611 *DONE*\n'
+            tasks_by_status += '\n\U00002611 *DONE*\n'
             for task in query.all():
-                a += '[[{}]] {}\n'.format(task.id, task.name)
+                tasks_by_status += '[[{}]] {}\n'.format(task.id, task.name)
 
-            send_message(a, chat)
+            send_message(tasks_by_status, chat)
         elif command == '/dependson':
             text = ''
             if msg != '':
@@ -282,9 +282,9 @@ def handle_updates(updates):
                 if text == '':
                     for i in task.dependencies.split(',')[:-1]:
                         i = int(i)
-                        q = db.session.query(Task).filter_by(id=i, chat=chat)
-                        t = q.one()
-                        t.parents = t.parents.replace('{},'.format(task.id), '')
+                        query = db.session.query(Task).filter_by(id=i, chat=chat)
+                        task_dep = query.one()
+                        task_dep.parents = task_dep.parents.replace('{},'.format(task.id), '')
 
                     task.dependencies = ''
                     send_message("Dependencies removed from task {}".format(task_id), chat)
@@ -354,7 +354,7 @@ def main():
         print("Updates")
         updates = get_updates(last_update_id)
 
-        if len(updates["result"]) > 0:
+        if updates["result"]:
             last_update_id = get_last_update_id(updates) + 1
             handle_updates(updates)
 
@@ -363,4 +363,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
