@@ -63,12 +63,70 @@ class Api:
             update_ids.append(int(update["update_id"]))
 
         return max(update_ids)
+
+    def handle_updates(self, updates):
+        controller = TasksController()
+
+        for update in updates["result"]:
+            if 'message' in update:
+                message = update['message']
+            elif 'edited_message' in update:
+                message = update['edited_message']
+            else:
+                print('Can\'t process! {}'.format(update))
+                return
+
+            command = message["text"].split(" ", 1)[0]
+            msg = ''
+            if len(message["text"].split(" ", 1)) > 1:
+                msg = message["text"].split(" ", 1)[1].strip()
+
+            chat = message["chat"]["id"]
+
+            print(command, msg, chat)
+
+            if command == '/new':
+                response = controller.new_task(msg, chat)
+                self.send_message(response, chat)
+            elif command == '/rename':
+                response = controller.rename_task(msg, chat)
+                self.send_message(response, chat)
+            elif command == '/duplicate':
+                response = controller.duplicate_task(msg, chat)
+                self.send_message(response, chat)
+            elif command == '/delete':
+                response = controller.delete_task(msg, chat)
+                self.send_message(response, chat)
+            elif command == '/todo':
+                response = controller.move_todo(msg, chat)
+                self.send_message(response, chat)
+            elif command == '/doing':
+                response = controller.move_doing(msg, chat)
+                self.send_message(response, chat)
+            elif command == '/done':
+                response = controller.move_done(msg, chat)
+                self.send_message(response, chat)
+            elif command == '/list':
+                response = controller.list_tasks(msg, chat)
+                self.send_message(response[0], chat)
+                self.send_message(response[1], chat)
+            elif command == '/dependson':
+                response = controller.depends_on(msg, chat)
+                self.send_message(response, chat)
+            elif command == '/priority':
+                response = controller.set_priority(msg, chat)
+                self.send_message(response, chat)
+            elif command == '/start':
+                self.send_message("Welcome! Here is a list of things you can do.", chat)
+                self.send_message(self.HELP, chat)
+            elif command == '/help':
+                self.send_message("Here is a list of things you can do.", chat)
+                self.send_message(self.HELP, chat)
+            else:
+                self.send_message("I'm sorry dave. I'm afraid I can't do that.", chat)
     
 
 class TasksController:
-    def __init__(self, api):
-        self.api = api
-
     def new_task(self, msg, chat):
         task = Task(chat=chat, name=msg, status='TODO', dependencies='', parents='', priority='')
         db.session.add(task)
@@ -294,64 +352,7 @@ class TasksController:
                     return "*Task {}* priority has priority *{}*".format(task_id, text.lower())
             db.session.commit()
 
-    def handle_updates(self, updates):
-        for update in updates["result"]:
-            if 'message' in update:
-                message = update['message']
-            elif 'edited_message' in update:
-                message = update['edited_message']
-            else:
-                print('Can\'t process! {}'.format(update))
-                return
 
-            command = message["text"].split(" ", 1)[0]
-            msg = ''
-            if len(message["text"].split(" ", 1)) > 1:
-                msg = message["text"].split(" ", 1)[1].strip()
-
-            chat = message["chat"]["id"]
-
-            print(command, msg, chat)
-
-            if command == '/new':
-                response = self.new_task(msg, chat)
-                self.api.send_message(response, chat)
-            elif command == '/rename':
-                response = self.rename_task(msg, chat)
-                self.api.send_message(response, chat)
-            elif command == '/duplicate':
-                response = self.duplicate_task(msg, chat)
-                self.api.send_message(response, chat)
-            elif command == '/delete':
-                response = self.delete_task(msg, chat)
-                self.api.send_message(response, chat)
-            elif command == '/todo':
-                response = self.move_todo(msg, chat)
-                self.api.send_message(response, chat)
-            elif command == '/doing':
-                response = self.move_doing(msg, chat)
-                self.api.send_message(response, chat)
-            elif command == '/done':
-                response = self.move_done(msg, chat)
-                self.api.send_message(response, chat)
-            elif command == '/list':
-                response = self.list_tasks(msg, chat)
-                self.api.send_message(response[0], chat)
-                self.api.send_message(response[1], chat)
-            elif command == '/dependson':
-                response = self.depends_on(msg, chat)
-                self.api.send_message(response, chat)
-            elif command == '/priority':
-                response = self.set_priority(msg, chat)
-                self.api.send_message(response, chat)
-            elif command == '/start':
-                self.api.send_message("Welcome! Here is a list of things you can do.", chat)
-                self.api.send_message(self.api.HELP, chat)
-            elif command == '/help':
-                self.api.send_message("Here is a list of things you can do.", chat)
-                self.api.send_message(self.api.HELP, chat)
-            else:
-                self.api.send_message("I'm sorry dave. I'm afraid I can't do that.", chat)
 
 def deps_text(task, chat, preceed=''):
     text = ''
@@ -384,7 +385,6 @@ def deps_text(task, chat, preceed=''):
 def main():
     last_update_id = None
     api = Api()
-    tasks_controller = TasksController(api)
 
     while True:
         print("Updates")
@@ -392,7 +392,7 @@ def main():
 
         if updates["result"]:
             last_update_id = api.get_last_update_id(updates) + 1
-            tasks_controller.handle_updates(updates)
+            api.handle_updates(updates)
 
         time.sleep(0.5)
 
