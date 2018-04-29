@@ -122,7 +122,25 @@ class TasksController:
 
             db.session.commit()
             return "New task *TODO* [[{}]] {}".format(dtask.id, dtask.name)
-
+    
+    def delete_task(self, msg, chat):
+        if not msg.isdigit():
+            return "You must inform the task id"
+        else:
+            task_id = int(msg)
+            query = db.session.query(Task).filter_by(id=task_id, chat=chat)
+            try:
+                task = query.one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                return "_404_ Task {} not found x.x".format(task_id)
+                
+            for dependency in task.dependencies.split(',')[:-1]:
+                query = db.session.query(Task).filter_by(id=int(dependency), chat=chat)
+                dependency = query.one()
+                dependency.parents = dependency.parents.replace('{},'.format(task.id), '')
+            db.session.delete(task)
+            db.session.commit()
+            return "Task [[{}]] deleted".format(task_id)
 
     def handle_updates(self, updates):
         for update in updates["result"]:
@@ -156,23 +174,8 @@ class TasksController:
                 self.api.send_message(response, chat)
 
             elif command == '/delete':
-                if not msg.isdigit():
-                    self.api.send_message("You must inform the task id", chat)
-                else:
-                    task_id = int(msg)
-                    query = db.session.query(Task).filter_by(id=task_id, chat=chat)
-                    try:
-                        task = query.one()
-                    except sqlalchemy.orm.exc.NoResultFound:
-                        self.api.send_message("_404_ Task {} not found x.x".format(task_id), chat)
-                        return
-                    for dependency in task.dependencies.split(',')[:-1]:
-                        query = db.session.query(Task).filter_by(id=int(dependency), chat=chat)
-                        dependency = query.one()
-                        dependency.parents = dependency.parents.replace('{},'.format(task.id), '')
-                    db.session.delete(task)
-                    db.session.commit()
-                    self.api.send_message("Task [[{}]] deleted".format(task_id), chat)
+                response = self.delete_task(msg, chat)
+                self.api.send_message(response, chat)
 
             elif command == '/todo':
                 if not msg.isdigit():
