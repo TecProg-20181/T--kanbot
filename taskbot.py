@@ -10,7 +10,12 @@ import sqlalchemy
 import db
 from db import Task
 
-TOKEN = ""
+def get_token():
+    with open('token.txt') as token_file:
+        token = token_file.read()
+        return token
+
+TOKEN = get_token()
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
 
 HELP = """
