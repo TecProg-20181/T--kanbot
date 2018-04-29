@@ -155,6 +155,20 @@ class TasksController:
             db.session.commit()
             return "*TODO* task [[{}]] {}".format(task.id, task.name)
 
+    def move_doing(self, msg, chat):
+        if not msg.isdigit():
+            return "You must inform the task id"
+        else:
+            task_id = int(msg)
+            query = db.session.query(Task).filter_by(id=task_id, chat=chat)
+            try:
+                task = query.one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                return "_404_ Task {} not found x.x".format(task_id)
+            task.status = 'DOING'
+            db.session.commit()
+            return "*DOING* task [[{}]] {}".format(task.id, task.name)
+
     def handle_updates(self, updates):
         for update in updates["result"]:
             if 'message' in update:
@@ -195,19 +209,8 @@ class TasksController:
                 self.api.send_message(response, chat)
 
             elif command == '/doing':
-                if not msg.isdigit():
-                    self.api.send_message("You must inform the task id", chat)
-                else:
-                    task_id = int(msg)
-                    query = db.session.query(Task).filter_by(id=task_id, chat=chat)
-                    try:
-                        task = query.one()
-                    except sqlalchemy.orm.exc.NoResultFound:
-                        self.api.send_message("_404_ Task {} not found x.x".format(task_id), chat)
-                        return
-                    task.status = 'DOING'
-                    db.session.commit()
-                    self.api.send_message("*DOING* task [[{}]] {}".format(task.id, task.name), chat)
+                response = self.move_doing(msg, chat)
+                self.api.send_message(response, chat)
 
             elif command == '/done':
                 if not msg.isdigit():
