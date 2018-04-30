@@ -264,15 +264,15 @@ class TasksController:
         query = db.session.query(Task).filter_by(status='TODO', chat=chat).order_by(Task.id)
         tasks_by_status += '\n\U0001F195 *TODO*\n'
         for task in query.all():
-            tasks_by_status += '[[{}]] {}\n'.format(task.id, task.name)
+            tasks_by_status += '[[{}]] {} - {}\n'.format(task.id, task.name, task.priority)
         query = db.session.query(Task).filter_by(status='DOING', chat=chat).order_by(Task.id)
         tasks_by_status += '\n\U000023FA *DOING*\n'
         for task in query.all():
-            tasks_by_status += '[[{}]] {}\n'.format(task.id, task.name)
+            tasks_by_status += '[[{}]] {} - {}\n'.format(task.id, task.name, task.priority)
         query = db.session.query(Task).filter_by(status='DONE', chat=chat).order_by(Task.id)
         tasks_by_status += '\n\U00002611 *DONE*\n'
         for task in query.all():
-            tasks_by_status += '[[{}]] {}\n'.format(task.id, task.name)
+            tasks_by_status += '[[{}]] {} - {}\n'.format(task.id, task.name, task.priority)
 
         list_messages.append(tasks_by_status)
         return list_messages
