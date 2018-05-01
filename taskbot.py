@@ -27,13 +27,14 @@ class Api:
                     /priority ID PRIORITY{low, medium, high}
                     /help
                     """
-
-    def get_token(self):
+    @classmethod
+    def get_token(cls):
         with open('token.txt') as token_file:
             token = token_file.read()
             return token
 
-    def get_url(self, url):
+    @classmethod
+    def get_url(cls, url):
         response = requests.get(url)
         content = response.content.decode("utf8")
         return content
@@ -57,7 +58,8 @@ class Api:
             url += "&reply_markup={}".format(reply_markup)
         self.get_url(url)
 
-    def get_last_update_id(self, updates):
+    @classmethod
+    def get_last_update_id(cls, updates):
         update_ids = []
         for update in updates["result"]:
             update_ids.append(int(update["update_id"]))
@@ -73,7 +75,7 @@ class Api:
             elif 'edited_message' in update:
                 message = update['edited_message']
             else:
-                print('Can\'t process! {}'.format(update))
+                print ('Can\'t process! {}').format(update)
                 return
 
             command = message["text"].split(" ", 1)[0]
@@ -127,13 +129,16 @@ class Api:
 
 
 class TasksController:
-    def new_task(self, msg, chat):
+
+    @classmethod
+    def new_task(cls, msg, chat):
         task = Task(chat=chat, name=msg, status='TODO', dependencies='', parents='', priority='')
         db.session.add(task)
         db.session.commit()
         return "New task *TODO* [[{}]] {}".format(task.id, task.name)
 
-    def rename_task(self, msg, chat):
+    @classmethod
+    def rename_task(cls, msg, chat):
         text = ''
         if msg != '':
             if len(msg.split(' ', 1)) > 1:
@@ -158,7 +163,8 @@ class TasksController:
             db.session.commit()
             return "Task {} redefined from {} to {}".format(task_id, old_text, text)
 
-    def duplicate_task(self, msg, chat):
+    @classmethod
+    def duplicate_task(cls, msg, chat):
         if not msg.isdigit():
             return "You must inform the task id"
         else:
@@ -169,8 +175,13 @@ class TasksController:
             except sqlalchemy.orm.exc.NoResultFound:
                 return "_404_ Task {} not found x.x".format(task_id)
 
-            dtask = Task(chat=task.chat, name=task.name, status=task.status, dependencies=task.dependencies,
-                        parents=task.parents, priority=task.priority, duedate=task.duedate)
+            dtask = Task(chat=task.chat,
+                         name=task.name,
+                         status=task.status,
+                         dependencies=task.dependencies,
+                         parents=task.parents,
+                         priority=task.priority,
+                         duedate=task.duedate)
             db.session.add(dtask)
 
             for dependency in task.dependencies.split(',')[:-1]:
@@ -181,7 +192,8 @@ class TasksController:
             db.session.commit()
             return "New task *TODO* [[{}]] {}".format(dtask.id, dtask.name)
 
-    def delete_task(self, msg, chat):
+    @classmethod
+    def delete_task(cls, msg, chat):
         if not msg.isdigit():
             return "You must inform the task id"
         else:
@@ -199,7 +211,8 @@ class TasksController:
             db.session.commit()
             return "Task [[{}]] deleted".format(task_id)
 
-    def move_todo(self, msg, chat):
+    @classmethod
+    def move_todo(cls, msg, chat):
         if not msg.isdigit():
             return "You must inform the task id"
         else:
@@ -213,7 +226,8 @@ class TasksController:
             db.session.commit()
             return "*TODO* task [[{}]] {}".format(task.id, task.name)
 
-    def move_doing(self, msg, chat):
+    @classmethod
+    def move_doing(cls, msg, chat):
         if not msg.isdigit():
             return "You must inform the task id"
         else:
@@ -227,7 +241,8 @@ class TasksController:
             db.session.commit()
             return "*DOING* task [[{}]] {}".format(task.id, task.name)
 
-    def move_done(self, msg, chat):
+    @classmethod
+    def move_done(cls, msg, chat):
         if not msg.isdigit():
             return "You must inform the task id"
         else:
@@ -241,7 +256,8 @@ class TasksController:
             db.session.commit()
             return "*DONE* task [[{}]] {}".format(task.id, task.name)
 
-    def list_tasks(self, msg, chat):
+    @classmethod
+    def list_tasks(cls, msg, chat):
         task_list = ''
         tasks_by_status = ''
         list_messages = []
@@ -255,7 +271,7 @@ class TasksController:
             elif task.status == 'DONE':
                 icon = '\U00002611'
 
-            task_list += '[[{}]] {} {} - {}\n'.format(task.id, icon, task.name, task.priority)
+            task_list += '[[{}]] {} {}\n'.format(task.id, icon, task.name)
             task_list += deps_text(task, chat)
 
         list_messages.append(task_list)
@@ -277,7 +293,8 @@ class TasksController:
         list_messages.append(tasks_by_status)
         return list_messages
 
-    def depends_on(self, msg, chat):
+    @classmethod
+    def depends_on(cls, msg, chat):
         text = ''
         if msg != '':
             if len(msg.split(' ', 1)) > 1:
@@ -303,8 +320,6 @@ class TasksController:
 
                 task.dependencies = ''
                 return "Dependencies removed from task {}".format(task_id)
-            elif dependency_exist(text, task_id):
-                return "Task {} already have a dependency of task {}".format(text, task_id)
             else:
                 for depid in text.split(' '):
                     if not depid.isdigit():
@@ -326,7 +341,8 @@ class TasksController:
             db.session.commit()
             return "Task {} dependencies up to date".format(task_id)
 
-    def set_priority(self, msg, chat):
+    @classmethod
+    def set_priority(cls, msg, chat):
         text = ''
         if msg != '':
             if len(msg.split(' ', 1)) > 1:
@@ -354,19 +370,15 @@ class TasksController:
                     return "*Task {}* priority has priority *{}*".format(task_id, text.lower())
             db.session.commit()
 
-def dependency_exist(task, task_dependecy):
-    query = db.session.query(Task).filter_by(id=task)
-    task_dep = query.one()
-    dependencies_task = task_dep.dependencies.split(",")
 
-    return str(task_dependecy) in dependencies_task
 
 def deps_text(task, chat, preceed=''):
     text = ''
 
     for i in range(len(task.dependencies.split(',')[:-1])):
         line = preceed
-        query = db.session.query(Task).filter_by(id=int(task.dependencies.split(',')[:-1][i]), chat=chat)
+        query = db.session.query(Task).filter_by(
+            id=int(task.dependencies.split(',')[:-1][i]), chat=chat)
         dep = query.one()
 
         icon = '\U0001F195'
