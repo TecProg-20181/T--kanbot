@@ -143,10 +143,12 @@ class TasksController:
         if msg != '':
             if len(msg.split(' ', 1)) > 1:
                 text = msg.split(' ', 1)[1]
+
             msg = msg.split(' ', 1)[0]
 
         if not msg.isdigit():
             return "You must inform the task id"
+
         else:
             task_id = int(msg)
             query = db.session.query(Task).filter_by(id=task_id, chat=chat)
@@ -256,14 +258,44 @@ class TasksController:
             db.session.commit()
             return "*DONE* task [[{}]] {}".format(task.id, task.name)
 
-    @classmethod
-    def list_tasks(cls, msg, chat):
+    def list_todo_tasks(self, chat):
+        tasks_by_status = ''
+
+        tasks_by_status += '\U0001F4DD _Status_\n'
+        query = db.session.query(Task).filter_by(status='TODO', chat=chat).order_by(Task.id)
+        tasks_by_status += '\n\U0001F195 *TODO*\n'
+        for task in query.all():
+            tasks_by_status += '[[{}]] {} - {}\n'.format(task.id, task.name, task.priority)
+        return tasks_by_status
+
+    def list_doing_tasks(self, chat):
+        tasks_by_status = ''
+
+        tasks_by_status += '\U0001F4DD _Status_\n'
+        query = db.session.query(Task).filter_by(status='DOING', chat=chat).order_by(Task.id)
+        tasks_by_status += '\n\U000023FA *DOING*\n'
+        for task in query.all():
+            tasks_by_status += '[[{}]] {} - {}\n'.format(task.id, task.name, task.priority)
+        return tasks_by_status
+
+    def list_done_tasks(self, chat):
+        tasks_by_status = ''
+
+        tasks_by_status += '\U0001F4DD _Status_\n'
+        query = db.session.query(Task).filter_by(status='DONE', chat=chat).order_by(Task.id)
+        tasks_by_status += '\n\U00002611 *DONE*\n'
+        for task in query.all():
+            tasks_by_status += '[[{}]] {} - {}\n'.format(task.id, task.name, task.priority)
+        return tasks_by_status
+
+    def list_tasks(self, msg, chat):
         task_list = ''
         tasks_by_status = ''
         list_messages = []
 
         task_list += '\U0001F4CB Task List\n'
         query = db.session.query(Task).filter_by(parents='', chat=chat).order_by(Task.id)
+
         for task in query.all():
             icon = '\U0001F195'
             if task.status == 'DOING':
@@ -276,19 +308,11 @@ class TasksController:
 
         list_messages.append(task_list)
 
-        tasks_by_status += '\U0001F4DD _Status_\n'
-        query = db.session.query(Task).filter_by(status='TODO', chat=chat).order_by(Task.id)
-        tasks_by_status += '\n\U0001F195 *TODO*\n'
-        for task in query.all():
-            tasks_by_status += '[[{}]] {} - {}\n'.format(task.id, task.name, task.priority)
-        query = db.session.query(Task).filter_by(status='DOING', chat=chat).order_by(Task.id)
-        tasks_by_status += '\n\U000023FA *DOING*\n'
-        for task in query.all():
-            tasks_by_status += '[[{}]] {} - {}\n'.format(task.id, task.name, task.priority)
-        query = db.session.query(Task).filter_by(status='DONE', chat=chat).order_by(Task.id)
-        tasks_by_status += '\n\U00002611 *DONE*\n'
-        for task in query.all():
-            tasks_by_status += '[[{}]] {} - {}\n'.format(task.id, task.name, task.priority)
+        tasks_by_status += self.list_todo_tasks(chat)
+
+        tasks_by_status += self.list_doing_tasks(chat)
+
+        tasks_by_status += self.list_done_tasks(chat)
 
         list_messages.append(tasks_by_status)
         return list_messages
