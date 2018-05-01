@@ -124,7 +124,7 @@ class Api:
                 self.send_message(self.HELP, chat)
             else:
                 self.send_message("I'm sorry dave. I'm afraid I can't do that.", chat)
-    
+
 
 class TasksController:
     def new_task(self, msg, chat):
@@ -152,7 +152,7 @@ class TasksController:
 
             if text == '':
                 return "You want to modify task {}, but you didn't provide any new text".format(task_id)
-                
+
             old_text = task.name
             task.name = text
             db.session.commit()
@@ -180,7 +180,7 @@ class TasksController:
 
             db.session.commit()
             return "New task *TODO* [[{}]] {}".format(dtask.id, dtask.name)
-    
+
     def delete_task(self, msg, chat):
         if not msg.isdigit():
             return "You must inform the task id"
@@ -255,9 +255,9 @@ class TasksController:
             elif task.status == 'DONE':
                 icon = '\U00002611'
 
-            task_list += '[[{}]] {} {}\n'.format(task.id, icon, task.name)
+            task_list += '[[{}]] {} {} - {}\n'.format(task.id, icon, task.name, task.priority)
             task_list += deps_text(task, chat)
-        
+
         list_messages.append(task_list)
 
         tasks_by_status += '\U0001F4DD _Status_\n'
