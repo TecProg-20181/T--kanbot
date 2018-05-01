@@ -303,6 +303,8 @@ class TasksController:
 
                 task.dependencies = ''
                 return "Dependencies removed from task {}".format(task_id)
+            elif dependency_exist(text, task_id):
+                return "Task {} already have a dependency of task {}".format(text, task_id)
             else:
                 for depid in text.split(' '):
                     if not depid.isdigit():
@@ -352,7 +354,12 @@ class TasksController:
                     return "*Task {}* priority has priority *{}*".format(task_id, text.lower())
             db.session.commit()
 
+def dependency_exist(task, task_dependecy):
+    query = db.session.query(Task).filter_by(id=task)
+    task_dep = query.one()
+    dependencies_task = task_dep.dependencies.split(",")
 
+    return str(task_dependecy) in dependencies_task
 
 def deps_text(task, chat, preceed=''):
     text = ''
