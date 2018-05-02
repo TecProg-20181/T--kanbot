@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+"""This code controls a telegram bot. This bot is a kanban."""
 import json
 import time
 import urllib
@@ -11,6 +11,7 @@ import db
 from db import Task
 
 class Api:
+    """This class controls the API."""
     def __init__(self):
         self.token = self.get_token()
         self.url = "https://api.telegram.org/bot{}/".format(self.token)
@@ -29,22 +30,26 @@ class Api:
                     """
     @classmethod
     def get_token(cls):
+        """This function gets the bot token."""
         with open('token.txt') as token_file:
             token = token_file.read()
             return token
 
     @classmethod
     def get_url(cls, url):
+        """This function gets the bot url."""
         response = requests.get(url)
         content = response.content.decode("utf8")
         return content
 
     def get_json_from_url(self, url):
+        """This function gets de json from url."""
         content = self.get_url(url)
         json_response = json.loads(content)
         return json_response
 
     def get_updates(self, offset=None):
+        """This function gets the bot updates."""
         url = self.url + "getUpdates?timeout=100"
         if offset:
             url += "&offset={}".format(offset)
@@ -52,6 +57,7 @@ class Api:
         return json_response
 
     def send_message(self, text, chat_id, reply_markup=None):
+        """This function sends messages for the user."""
         text = urllib.parse.quote_plus(text)
         url = self.url + "sendMessage?text={}&chat_id={}&parse_mode=Markdown".format(text, chat_id)
         if reply_markup:
@@ -60,6 +66,7 @@ class Api:
 
     @classmethod
     def get_last_update_id(cls, updates):
+        """This function gets the id of the last update."""
         update_ids = []
         for update in updates["result"]:
             update_ids.append(int(update["update_id"]))
@@ -67,6 +74,7 @@ class Api:
         return max(update_ids)
 
     def handle_updates(self, updates):
+        """This function controls the updates."""
         controller = TasksController()
 
         for update in updates["result"]:
@@ -132,6 +140,7 @@ class Api:
 
 
 class TasksController:
+    """This class controls the tasks."""
 
     @classmethod
     def new_task(cls, msg, chat):
@@ -386,6 +395,7 @@ def deps_text(task, chat, preceed=''):
 
 
 def main():
+    """This function controls the bot. """
     last_update_id = None
     api = Api()
 
