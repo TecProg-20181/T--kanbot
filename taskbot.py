@@ -12,9 +12,9 @@ from db import Task
 
 class Api:
     def __init__(self):
-        self.TOKEN = self.get_token()
-        self.URL = "https://api.telegram.org/bot{}/".format(self.TOKEN)
-        self.HELP = """
+        self.token = self.get_token()
+        self.url = "https://api.telegram.org/bot{}/".format(self.token)
+        self.help = """
                     /new NOME
                     /todo ID
                     /doing ID
@@ -45,7 +45,7 @@ class Api:
         return json_response
 
     def get_updates(self, offset=None):
-        url = self.URL + "getUpdates?timeout=100"
+        url = self.url + "getUpdates?timeout=100"
         if offset:
             url += "&offset={}".format(offset)
         json_response = self.get_json_from_url(url)
@@ -53,7 +53,7 @@ class Api:
 
     def send_message(self, text, chat_id, reply_markup=None):
         text = urllib.parse.quote_plus(text)
-        url = self.URL + "sendMessage?text={}&chat_id={}&parse_mode=Markdown".format(text, chat_id)
+        url = self.url + "sendMessage?text={}&chat_id={}&parse_mode=Markdown".format(text, chat_id)
         if reply_markup:
             url += "&reply_markup={}".format(reply_markup)
         self.get_url(url)
@@ -120,10 +120,10 @@ class Api:
                 self.send_message(response, chat)
             elif command == '/start':
                 self.send_message("Welcome! Here is a list of things you can do.", chat)
-                self.send_message(self.HELP, chat)
+                self.send_message(self.help, chat)
             elif command == '/help':
                 self.send_message("Here is a list of things you can do.", chat)
-                self.send_message(self.HELP, chat)
+                self.send_message(self.help, chat)
             else:
                 self.send_message("I'm sorry dave. I'm afraid I can't do that.", chat)
 
