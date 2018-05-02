@@ -135,6 +135,7 @@ class TasksController:
 
     @classmethod
     def new_task(cls, msg, chat):
+        """This function creates the new tasks."""
         task = Task(chat=chat, name=msg, status='TODO', dependencies='', parents='', priority='')
         db.session.add(task)
         db.session.commit()
@@ -142,6 +143,7 @@ class TasksController:
 
     @classmethod
     def rename_task(cls, msg, chat):
+        """This function changes the task name."""
         text = ''
         if msg != '':
             if len(msg.split(' ', 1)) > 1:
@@ -170,6 +172,7 @@ class TasksController:
 
     @classmethod
     def duplicate_task(cls, msg, chat):
+        """This function duplicates the task."""
         if not msg.isdigit():
             return "You must inform the task id"
         else:
@@ -199,6 +202,7 @@ class TasksController:
 
     @classmethod
     def delete_task(cls, msg, chat):
+        """This function deletes tasks."""
         if not msg.isdigit():
             return "You must inform the task id"
         else:
@@ -217,6 +221,7 @@ class TasksController:
             return "Task [[{}]] deleted".format(task_id)
 
     def change_status(self, msg, chat, new_status):
+        """This function changes the task status."""
         if not msg.isdigit():
             return "You must inform the task id"
         else:
@@ -231,6 +236,7 @@ class TasksController:
             return "*{}* task [[{}]] {}".format(new_status, task.id, task.name)
 
     def list_by_status(self, chat, status):
+        """This function lists the tasks using the status."""
         tasks = ''
         query = db.session.query(Task).filter_by(status=status, chat=chat).order_by(Task.id)
         for task in query.all():
@@ -238,6 +244,7 @@ class TasksController:
         return tasks
 
     def list_tasks(self, msg, chat):
+        """This function lists the tasks."""
         task_list = ''
         tasks_by_status = ''
         list_messages = []
@@ -270,6 +277,7 @@ class TasksController:
 
     @classmethod
     def depends_on(cls, msg, chat):
+        """This function controls the task dependencies."""
         text = ''
         if msg != '':
             if len(msg.split(' ', 1)) > 1:
@@ -318,6 +326,7 @@ class TasksController:
 
     @classmethod
     def set_priority(cls, msg, chat):
+        """This function controls the task priority."""
         text = ''
         if msg != '':
             if len(msg.split(' ', 1)) > 1:
