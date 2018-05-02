@@ -249,7 +249,7 @@ class TasksController:
         tasks = ''
         query = db.session.query(Task).filter_by(status=status, chat=chat).order_by(Task.id)
         for task in query.all():
-            tasks += '[[{}]] {}\n'.format(task.id, task.name)
+            tasks += '[[{}]] {} - {}\n'.format(task.id, task.name, task.priority)
         return tasks
 
     def list_tasks(self, msg, chat):
