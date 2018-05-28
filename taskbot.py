@@ -205,6 +205,7 @@ class TasksController:
                          dependencies=task.dependencies,
                          parents=task.parents,
                          priority=task.priority,
+                         overdue=task.overdue,
                          duedate=task.duedate)
             db.session.add(dtask)
 
@@ -261,10 +262,20 @@ class TasksController:
 
         return ''
 
+    def list_overdue(self, chat):
+        tasks = ''
+        overdue = True
+        query = db.session.query(Task).filter_by(overdue=overdue, chat=chat).order_by(Task.id)
+        for task in query.all():
+            tasks += '[[{}]] {}\n'.format(task.id, task.name)
+
+        return tasks
+
     def list_by_status(self, chat, status):
         """This function lists the tasks using the status."""
         tasks = ''
-        query = db.session.query(Task).filter_by(status=status, chat=chat).order_by(Task.id)
+        overdue = False
+        query = db.session.query(Task).filter_by(status=status, overdue=overdue, chat=chat).order_by(Task.id)
         for task in query.all():
             if task.priority == '':
                 if task.duedate == None:
@@ -288,7 +299,23 @@ class TasksController:
         task_list += '\U0001F4CB Task List\n'
         query = db.session.query(Task).filter_by(parents='', chat=chat).order_by(Task.id)
 
+        today = None
+        NO_TIME = 0
+        difference = ''
+
+        today = datetime.date.today()
+
         for task in query.all():
+            if task.duedate != None:
+                difference = task.duedate - today
+
+            if task.duedate != None and difference.days < NO_TIME:
+                task.overdue = True
+            else:
+                task.overdue = False
+
+            print(task.overdue)
+
             icon = '\U0001F195'
             if task.status == 'DOING':
                 icon = '\U000023FA'
@@ -307,6 +334,8 @@ class TasksController:
         tasks_by_status += self.list_by_status(chat, 'DOING')
         tasks_by_status += '\n\U00002611 *DONE*\n'
         tasks_by_status += self.list_by_status(chat, 'DONE')
+        tasks_by_status += '\n\U0001F198 *OVERDUE*\n'
+        tasks_by_status += self.list_overdue(chat)
 
         list_messages.append(tasks_by_status)
         return list_messages
@@ -431,6 +460,7 @@ class TasksController:
                     return "The duedate *must be* greater than or equal today's date"
                 else:
                     task.duedate = duedate
+                    task.overdue = False
                     db.session.commit()
                     return "*Task {}* duedate has priority *{}*".format(task_id, duedate)
 
