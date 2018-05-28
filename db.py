@@ -21,6 +21,7 @@ class Task(Base):
     dependencies = Column(String)
     parents = Column(String)
     priority = Column(String)
+    overdue = Column(Boolean)
     duedate = Column(Date)
 
     def __repr__(self):
