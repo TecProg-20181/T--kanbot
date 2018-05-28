@@ -3,6 +3,7 @@
 import json
 import time
 import urllib
+import datetime
 
 import requests
 import sqlalchemy
@@ -26,6 +27,7 @@ class Api:
                     /dependson ID ID...
                     /duplicate ID
                     /priority ID PRIORITY{low, medium, high}
+                    /duedate ID DATE{dd/mm/yy}
                     /help
                     """
     @classmethod
@@ -86,6 +88,8 @@ class Api:
                 print ('Can\'t process! {}').format(update)
                 return
 
+            print(message)
+
             command = message["text"].split(" ", 1)[0]
             msg = ''
             if len(message["text"].split(" ", 1)) > 1:
@@ -128,6 +132,9 @@ class Api:
                 self.send_message(response, chat)
             elif command == '/priority':
                 response = controller.set_priority(msg, chat)
+                self.send_message(response, chat)
+            elif command == '/duedate':
+                response = controller.set_duedate(msg, chat)
                 self.send_message(response, chat)
             elif command == '/start':
                 self.send_message("Welcome! Here is a list of things you can do.", chat)
@@ -249,7 +256,17 @@ class TasksController:
         tasks = ''
         query = db.session.query(Task).filter_by(status=status, chat=chat).order_by(Task.id)
         for task in query.all():
-            tasks += '[[{}]] {} - {}\n'.format(task.id, task.name, task.priority)
+            if task.priority == '':
+                if task.duedate == None:
+                    tasks += '[[{}]] {}\n'.format(task.id, task.name)
+                else:
+                    tasks += '[[{}]] {} ({})\n'.format(task.id, task.name, task.duedate)
+            else:
+                if task.duedate == None:
+                    tasks += '[[{}]] {} - {}\n'.format(task.id, task.name, task.priority)
+                else:
+                    tasks += '[[{}]] {} - {} ({})\n'.format(task.id, task.name, task.priority, task.duedate)
+
         return tasks
 
     def list_tasks(self, msg, chat):
@@ -365,12 +382,53 @@ class TasksController:
                     return "*Task {}* priority has priority *{}*".format(task_id, text.lower())
             db.session.commit()
 
+    @classmethod
+    def set_duedate(cls, msg, chat):
+        """This function controls the task duedate."""
+        text = ''
+        if msg != '':
+            if len(msg.split(' ', 1)) > 1:
+                text = msg.split(' ', 1)[1]
+            msg = msg.split(' ', 1)[0]
+
+        if not msg.isdigit():
+            return "You must inform the task id"
+        else:
+            task_id = int(msg)
+            query = db.session.query(Task).filter_by(id=task_id, chat=chat)
+            try:
+                task = query.one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                return "_404_ Task {} not found x.x".format(task_id)
+
+            if text == '':
+                task.duedate = None
+                db.session.commit()
+                return "_Cleared_ all duedate from task {}".format(task_id)
+            else:
+                print(task.duedate)
+                duedate = ''
+                today = ''
+                diference = 0
+
+                duedate = text.split('/')
+                duedate = datetime.date(int(duedate[2]), int(duedate[1]), int(duedate[0]))
+                today = datetime.date.today()
+
+                diference = (duedate - today).days
+
+                if diference < 0:
+                    return "The duedate *must be* greater than or equal today's date"
+                else:
+                    task.duedate = duedate
+                    db.session.commit()
+                    return "*Task {}* duedate has priority *{}*".format(task_id, duedate)
 
 def dependency_exist(task, task_dependecy):
     query = db.session.query(Task).filter_by(id=task)
     task_dep = query.one()
     dependencies_task = task_dep.dependencies.split(",")
- 	 
+
     return str(task_dependecy) in dependencies_task
 
 def deps_text(task, chat, preceed=''):
