@@ -251,6 +251,16 @@ class TasksController:
             db.session.commit()
             return "*{}* task [[{}]] {}".format(new_status, task.id, task.name)
 
+    def get_priority(self, task):
+        if task.priority == 'low':
+            return '\U00002755'
+        elif task.priority == 'medium':
+            return '\U00002757'
+        elif task.priority == 'high':
+            return '\U0000203C'
+
+        return ''
+
     def list_by_status(self, chat, status):
         """This function lists the tasks using the status."""
         tasks = ''
@@ -258,14 +268,14 @@ class TasksController:
         for task in query.all():
             if task.priority == '':
                 if task.duedate == None:
-                    tasks += '[[{}]] {}\n'.format(task.id, task.name)
+                    tasks += '{} [[{}]] {}\n'.format(self.get_priority(task), task.id, task.name)
                 else:
-                    tasks += '[[{}]] {} ({})\n'.format(task.id, task.name, task.duedate)
+                    tasks += '{} [[{}]] {} ({})\n'.format(self.get_priority(task), task.id, task.name, task.duedate)
             else:
                 if task.duedate == None:
-                    tasks += '[[{}]] {} - {}\n'.format(task.id, task.name, task.priority)
+                    tasks += '{} [[{}]] {}\n'.format(self.get_priority(task), task.id, task.name)
                 else:
-                    tasks += '[[{}]] {} - {} ({})\n'.format(task.id, task.name, task.priority, task.duedate)
+                    tasks += '{} [[{}]] {} ({})\n'.format(self.get_priority(task), task.id, task.name, task.duedate)
 
         return tasks
 
