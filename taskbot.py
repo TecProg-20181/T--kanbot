@@ -16,6 +16,7 @@ class Api:
     def __init__(self):
         self.token = self.get_token()
         self.url = "https://api.telegram.org/bot{}/".format(self.token)
+        self.controller = TasksController()
         self.help = """
                     /new NOME
                     /todo ID
@@ -75,10 +76,13 @@ class Api:
 
         return max(update_ids)
 
+    def handle_status_change(self, msg, chat, status):
+        response_list = self.controller.change_multiple(msg, chat, status)
+        for response in response_list:
+            self.send_message(response, chat)
+
     def handle_updates(self, updates):
         """This function controls the updates."""
-        controller = TasksController()
-
         for update in updates["result"]:
             if 'message' in update:
                 message = update['message']
@@ -100,38 +104,35 @@ class Api:
             print(command, msg, chat)
 
             if command == '/new':
-                response = controller.new_task(msg, chat)
+                response = self.controller.new_task(msg, chat)
                 self.send_message(response, chat)
             elif command == '/rename':
-                response = controller.rename_task(msg, chat)
+                response = self.controller.rename_task(msg, chat)
                 self.send_message(response, chat)
             elif command == '/duplicate':
-                response = controller.duplicate_task(msg, chat)
+                response = self.controller.duplicate_task(msg, chat)
                 self.send_message(response, chat)
             elif command == '/delete':
-                response = controller.delete_task(msg, chat)
+                response = self.controller.delete_task(msg, chat)
                 self.send_message(response, chat)
             elif command == '/todo':
                 status = 'TODO'
-                response = controller.change_status(msg, chat, status)
-                self.send_message(response, chat)
+                self.handle_status_change(msg, chat, status)
             elif command == '/doing':
                 status = 'DOING'
-                response = controller.change_status(msg, chat, status)
-                self.send_message(response, chat)
+                self.handle_status_change(msg, chat, status)                
             elif command == '/done':
                 status = 'DONE'
-                response = controller.change_status(msg, chat, status)
-                self.send_message(response, chat)
+                self.handle_status_change(msg, chat, status)
             elif command == '/list':
-                response = controller.list_tasks(msg, chat)
+                response = self.controller.list_tasks(msg, chat)
                 self.send_message(response[0], chat)
                 self.send_message(response[1], chat)
             elif command == '/dependson':
-                response = controller.depends_on(msg, chat)
+                response = self.controller.depends_on(msg, chat)
                 self.send_message(response, chat)
             elif command == '/priority':
-                response = controller.set_priority(msg, chat)
+                response = self.controller.set_priority(msg, chat)
                 self.send_message(response, chat)
             elif command == '/duedate':
                 response = controller.set_duedate(msg, chat)
@@ -236,6 +237,14 @@ class TasksController:
             db.session.delete(task)
             db.session.commit()
             return "Task [[{}]] deleted".format(task_id)
+
+    def change_multiple(self, msg, chat, new_status):
+        tasks = msg.split(' ')
+        responses = []
+        for task in tasks:
+            response = self.change_status(task, chat, new_status)
+            responses.append(response)
+        return responses
 
     def change_status(self, msg, chat, new_status):
         """This function changes the task status."""
