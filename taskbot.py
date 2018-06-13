@@ -27,7 +27,7 @@ class Api:
                     /dependson ID ID...
                     /duplicate ID
                     /priority ID PRIORITY{low, medium, high}
-                    /duedate ID DATE{dd/mm/yy}
+                    /duedate ID DATE{dd/mm/yyyy}
                     /help
                     """
     @classmethod
