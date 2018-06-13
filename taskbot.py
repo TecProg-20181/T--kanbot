@@ -128,6 +128,7 @@ class Api:
                 response = self.controller.list_tasks(msg, chat)
                 self.send_message(response[0], chat)
                 self.send_message(response[1], chat)
+                self.send_message(response[2], chat)
             elif command == '/dependson':
                 response = self.controller.depends_on(msg, chat)
                 self.send_message(response, chat)
@@ -286,23 +287,22 @@ class TasksController:
         overdue = False
         query = db.session.query(Task).filter_by(status=status, overdue=overdue, chat=chat).order_by(Task.id)
         for task in query.all():
-            if task.priority == '':
-                if task.duedate == None:
-                    tasks += '{} [[{}]] {}\n'.format(self.get_priority(task), task.id, task.name)
-                else:
-                    tasks += '{} [[{}]] {} ({})\n'.format(self.get_priority(task), task.id, task.name, task.duedate)
-            else:
-                if task.duedate == None:
-                    tasks += '{} [[{}]] {}\n'.format(self.get_priority(task), task.id, task.name)
-                else:
-                    tasks += '{} [[{}]] {} ({})\n'.format(self.get_priority(task), task.id, task.name, task.duedate)
+            tasks += '[[{}]] {}\n'.format(task.id, task.name)
+        return tasks
 
+    def list_by_priority(self, chat, priority):
+        """This method lists tasks by their priority."""
+        tasks = ''
+        query = db.session.query(Task).filter_by(priority=priority, chat=chat).order_by(Task.id)
+        for task in query.all():
+            tasks += '[[{}]] {}\n'.format(task.id, task.name)
         return tasks
 
     def list_tasks(self, msg, chat):
         """This function lists the tasks."""
         task_list = ''
         tasks_by_status = ''
+        tasks_by_priority = ''
         list_messages = []
 
         task_list += '\U0001F4CB Task List\n'
@@ -347,6 +347,16 @@ class TasksController:
         tasks_by_status += self.list_overdue(chat)
 
         list_messages.append(tasks_by_status)
+
+        tasks_by_priority += '_Priorities_\n'
+        tasks_by_priority += '*HIGH*\n'
+        tasks_by_priority += self.list_by_priority(chat, 'high')
+        tasks_by_priority += '*MEDIUM*\n'
+        tasks_by_priority += self.list_by_priority(chat, 'medium')
+        tasks_by_priority += '*LOW*\n'
+        tasks_by_priority += self.list_by_priority(chat, 'low')
+
+        list_messages.append(tasks_by_priority)
         return list_messages
 
     @classmethod
