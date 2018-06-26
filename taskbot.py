@@ -16,6 +16,7 @@ class Api:
     def __init__(self):
         self.token = self.get_token()
         self.url = "https://api.telegram.org/bot{}/".format(self.token)
+        self.controller = TasksController()
         self.help = """
                     /new NOME
                     /todo ID
@@ -75,10 +76,13 @@ class Api:
 
         return max(update_ids)
 
+    def handle_status_change(self, msg, chat, status):
+        response_list = self.controller.change_multiple(msg, chat, status)
+        for response in response_list:
+            self.send_message(response, chat)
+
     def handle_updates(self, updates):
         """This function controls the updates."""
-        controller = TasksController()
-
         for update in updates["result"]:
             if 'message' in update:
                 message = update['message']
@@ -100,41 +104,38 @@ class Api:
             print(command, msg, chat)
 
             if command == '/new':
-                response = controller.new_task(msg, chat)
+                response = self.controller.new_task(msg, chat)
                 self.send_message(response, chat)
             elif command == '/rename':
-                response = controller.rename_task(msg, chat)
+                response = self.controller.rename_task(msg, chat)
                 self.send_message(response, chat)
             elif command == '/duplicate':
-                response = controller.duplicate_task(msg, chat)
+                response = self.controller.duplicate_task(msg, chat)
                 self.send_message(response, chat)
             elif command == '/delete':
-                response = controller.delete_task(msg, chat)
+                response = self.controller.delete_task(msg, chat)
                 self.send_message(response, chat)
             elif command == '/todo':
                 status = 'TODO'
-                response = controller.change_status(msg, chat, status)
-                self.send_message(response, chat)
+                self.handle_status_change(msg, chat, status)
             elif command == '/doing':
                 status = 'DOING'
-                response = controller.change_status(msg, chat, status)
-                self.send_message(response, chat)
+                self.handle_status_change(msg, chat, status)                
             elif command == '/done':
                 status = 'DONE'
-                response = controller.change_status(msg, chat, status)
-                self.send_message(response, chat)
+                self.handle_status_change(msg, chat, status)
             elif command == '/list':
-                response = controller.list_tasks(msg, chat)
-                self.send_message(response[0], chat)
-                self.send_message(response[1], chat)
+                response_list = self.controller.list_tasks(msg, chat)
+                for response in response_list:
+                    self.send_message(response, chat)
             elif command == '/dependson':
-                response = controller.depends_on(msg, chat)
+                response = self.controller.depends_on(msg, chat)
                 self.send_message(response, chat)
             elif command == '/priority':
-                response = controller.set_priority(msg, chat)
+                response = self.controller.set_priority(msg, chat)
                 self.send_message(response, chat)
             elif command == '/duedate':
-                response = controller.set_duedate(msg, chat)
+                response = self.controller.set_duedate(msg, chat)
                 self.send_message(response, chat)
             elif command == '/start':
                 self.send_message("Welcome! Here is a list of things you can do.", chat)
@@ -237,6 +238,14 @@ class TasksController:
             db.session.commit()
             return "Task [[{}]] deleted".format(task_id)
 
+    def change_multiple(self, msg, chat, new_status):
+        tasks = msg.split(' ')
+        responses = []
+        for task in tasks:
+            response = self.change_status(task, chat, new_status)
+            responses.append(response)
+        return responses
+
     def change_status(self, msg, chat, new_status):
         """This function changes the task status."""
         if not msg.isdigit():
@@ -271,30 +280,25 @@ class TasksController:
 
         return tasks
 
-    def list_by_status(self, chat, status):
-        """This function lists the tasks using the status."""
+    def filter_by_status(self, chat, status):
+        """This function orders the tasks using the status."""
         tasks = ''
         overdue = False
         query = db.session.query(Task).filter_by(status=status, overdue=overdue, chat=chat).order_by(Task.id)
         for task in query.all():
-            if task.priority == '':
-                if task.duedate == None:
-                    tasks += '{} [[{}]] {}\n'.format(self.get_priority(task), task.id, task.name)
-                else:
-                    tasks += '{} [[{}]] {} ({})\n'.format(self.get_priority(task), task.id, task.name, task.duedate)
-            else:
-                if task.duedate == None:
-                    tasks += '{} [[{}]] {}\n'.format(self.get_priority(task), task.id, task.name)
-                else:
-                    tasks += '{} [[{}]] {} ({})\n'.format(self.get_priority(task), task.id, task.name, task.duedate)
-
+            tasks += '[[{}]] {}\n'.format(task.id, task.name)
         return tasks
 
-    def list_tasks(self, msg, chat):
-        """This function lists the tasks."""
+    def filter_by_priority(self, chat, priority):
+        """This method orders tasks by their priority."""
+        tasks = ''
+        query = db.session.query(Task).filter_by(priority=priority, chat=chat).order_by(Task.id)
+        for task in query.all():
+            tasks += '[[{}]] {}\n'.format(task.id, task.name)
+        return tasks
+
+    def list_default(self, chat):
         task_list = ''
-        tasks_by_status = ''
-        list_messages = []
 
         task_list += '\U0001F4CB Task List\n'
         query = db.session.query(Task).filter_by(parents='', chat=chat).order_by(Task.id)
@@ -325,19 +329,51 @@ class TasksController:
             task_list += '[[{}]] {} {}\n'.format(task.id, icon, task.name)
             task_list += deps_text(task, chat)
 
-        list_messages.append(task_list)
+        return task_list
+
+    def list_by_status(self, chat):
+        tasks_by_status = ''
 
         tasks_by_status += '\U0001F4DD _Status_\n'
         tasks_by_status += '\n\U0001F195 *TODO*\n'
-        tasks_by_status += self.list_by_status(chat, 'TODO')
+        tasks_by_status += self.filter_by_status(chat, 'TODO')
         tasks_by_status += '\n\U000023FA *DOING*\n'
-        tasks_by_status += self.list_by_status(chat, 'DOING')
+        tasks_by_status += self.filter_by_status(chat, 'DOING')
         tasks_by_status += '\n\U00002611 *DONE*\n'
-        tasks_by_status += self.list_by_status(chat, 'DONE')
+        tasks_by_status += self.filter_by_status(chat, 'DONE')
         tasks_by_status += '\n\U0001F198 *OVERDUE*\n'
         tasks_by_status += self.list_overdue(chat)
 
+        return tasks_by_status
+
+    def list_by_priority(self, chat):
+        tasks_by_priority = ''
+
+        tasks_by_priority += '_Priorities_\n'
+        tasks_by_priority += '*HIGH*\n'
+        tasks_by_priority += self.filter_by_priority(chat, 'high')
+        tasks_by_priority += '*MEDIUM*\n'
+        tasks_by_priority += self.filter_by_priority(chat, 'medium')
+        tasks_by_priority += '*LOW*\n'
+        tasks_by_priority += self.filter_by_priority(chat, 'low')
+
+        return tasks_by_priority
+
+    def list_tasks(self, msg, chat):
+        """This function lists the tasks."""
+        task_list = ''
+        tasks_by_status = ''
+        tasks_by_priority = ''
+        list_messages = []
+        
+        task_list += self.list_default(chat)
+        list_messages.append(task_list)
+
+        tasks_by_status += self.list_by_status(chat)
         list_messages.append(tasks_by_status)
+
+        tasks_by_priority += self.list_by_priority(chat)
+        list_messages.append(tasks_by_priority)
         return list_messages
 
     @classmethod
