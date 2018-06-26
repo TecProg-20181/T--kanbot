@@ -4,6 +4,7 @@ import json
 import time
 import urllib
 import datetime
+import os
 
 import requests
 import sqlalchemy
@@ -105,6 +106,7 @@ class Api:
 
             if command == '/new':
                 response = self.controller.new_task(msg, chat)
+                create_issue(msg, chat, '')
                 self.send_message(response, chat)
             elif command == '/rename':
                 response = self.controller.rename_task(msg, chat)
@@ -120,7 +122,7 @@ class Api:
                 self.handle_status_change(msg, chat, status)
             elif command == '/doing':
                 status = 'DOING'
-                self.handle_status_change(msg, chat, status)                
+                self.handle_status_change(msg, chat, status)
             elif command == '/done':
                 status = 'DONE'
                 self.handle_status_change(msg, chat, status)
@@ -365,7 +367,7 @@ class TasksController:
         tasks_by_status = ''
         tasks_by_priority = ''
         list_messages = []
-        
+
         task_list += self.list_default(chat)
         list_messages.append(task_list)
 
@@ -500,6 +502,8 @@ class TasksController:
                     db.session.commit()
                     return "*Task {}* duedate has priority *{}*".format(task_id, duedate)
 
+
+
 def dependency_exist(task, task_dependecy):
     query = db.session.query(Task).filter_by(id=task)
     task_dep = query.one()
@@ -550,6 +554,47 @@ def main():
             api.handle_updates(updates)
 
         time.sleep(0.5)
+        
+# class GithubApi:
+#     """This class communicates with the github api."""
+
+#     def __init__(self):
+#         self.login = self.user_login()
+#         self.repositoryOwner = 'TecProg-20181'
+#         self.repositoryName = 'T--kanbot'
+#         self.api = Api()
+
+#     def user_login(self):
+#         """This function gets the bot login."""
+#         with open('login.txt') as login_file:
+#             login = login_file.read().split('\n')
+#             return login
+
+
+REPOSITORY_OWNER='TecProg-20181'
+REPOSITORY_NAME='T--kanbot'
+
+USERNAME = ''
+PASSWORD = ''
+
+def create_issue(msg, chat, body=None):
+    """This function creates an issue on github."""
+    
+    api = Api()
+    url = 'https://api.github.com/repos/%s/%s/issues' % (REPOSITORY_OWNER, REPOSITORY_NAME)
+    session = requests.Session()
+    # self.user_login()
+    session.auth = (USERNAME, PASSWORD)
+    issue = {'title': msg,
+             'body': body}
+    payload = json.dumps(issue)
+    # response = requests.request("POST", url, data=payload)
+    response = session.post(url, payload)
+    if response.status_code == 201:
+        api.send_message('Successfully created Issue {0:s}'.format(msg), chat)
+    else:
+        api.send_message('Could not create Issue {0:s}'.format(msg), chat)
+        print ('Response:', response.content)
 
 
 if __name__ == '__main__':
