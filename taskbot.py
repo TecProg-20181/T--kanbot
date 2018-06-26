@@ -574,14 +574,14 @@ def main():
 REPOSITORY_OWNER='TecProg-20181'
 REPOSITORY_NAME='T--kanbot'
 
-USERNAME = 'lucianaribeiro'
-PASSWORD = 'aa005500'
+USERNAME = ''
+PASSWORD = ''
 
 def create_issue(msg, chat, body=None):
     """This function creates an issue on github."""
     
     api = Api()
-    url = 'https://api.github.com/repos/%s/%s/import/issues' % (REPOSITORY_OWNER, REPOSITORY_NAME)
+    url = 'https://api.github.com/repos/%s/%s/issues' % (REPOSITORY_OWNER, REPOSITORY_NAME)
     session = requests.Session()
     # self.user_login()
     session.auth = (USERNAME, PASSWORD)
