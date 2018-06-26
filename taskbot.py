@@ -18,7 +18,6 @@ class Api:
         self.token = self.get_token()
         self.url = "https://api.telegram.org/bot{}/".format(self.token)
         self.controller = TasksController()
-        self.github = GithubApi()
         self.help = """
                     /new NOME
                     /todo ID
@@ -107,8 +106,8 @@ class Api:
 
             if command == '/new':
                 response = self.controller.new_task(msg, chat)
-                response2 = self.github.create_issue(msg, chat)
-                self.send_message(response, response2, chat)
+                create_issue(msg, chat, '')
+                self.send_message(response, chat)
             elif command == '/rename':
                 response = self.controller.rename_task(msg, chat)
                 self.send_message(response, chat)
@@ -503,37 +502,6 @@ class TasksController:
                     db.session.commit()
                     return "*Task {}* duedate has priority *{}*".format(task_id, duedate)
 
-class GithubApi:
-    """This class communicates with the github api."""
-
-    def __init__(self):
-        self.login = self.user_login()
-        self.repositoryOwner = 'TecProg-20181'
-        self.repositoryName = 'T--kanbot'
-        self.api = Api()
-
-    def user_login(self):
-        """This function gets the bot login."""
-        with open('login.txt') as login_file:
-            login = login_file.read().split('\n')
-            return login
-
-    def create_issue(self, chat, msg):
-        """This function creates an issue on github."""
-
-        url = 'https://api.github.com/repos/%s/%s/import/issues' % (self.repositoryOwner, self.repositoryName)
-        session = requests.Session()
-        self.user_login()
-        session.auth = (self.login[0], self.login[1])
-        issue = {'title': msg}
-        payload = json.dumps(issue)
-        response = requests.request("POST", url, data=payload)
-
-        if response.status_code == 201:
-            api.send_message('Successfully created Issue {0:s}'.format(msg), chat)
-        else:
-            api.send_message('Could not create Issue {0:s}'.format(msg), chat)
-            print ('Response:', response.content)
 
 
 def dependency_exist(task, task_dependecy):
@@ -586,6 +554,47 @@ def main():
             api.handle_updates(updates)
 
         time.sleep(0.5)
+        
+# class GithubApi:
+#     """This class communicates with the github api."""
+
+#     def __init__(self):
+#         self.login = self.user_login()
+#         self.repositoryOwner = 'TecProg-20181'
+#         self.repositoryName = 'T--kanbot'
+#         self.api = Api()
+
+#     def user_login(self):
+#         """This function gets the bot login."""
+#         with open('login.txt') as login_file:
+#             login = login_file.read().split('\n')
+#             return login
+
+
+REPOSITORY_OWNER='TecProg-20181'
+REPOSITORY_NAME='T--kanbot'
+
+USERNAME = 'lucianaribeiro'
+PASSWORD = 'aa005500'
+
+def create_issue(msg, chat, body=None):
+    """This function creates an issue on github."""
+    
+    api = Api()
+    url = 'https://api.github.com/repos/%s/%s/import/issues' % (REPOSITORY_OWNER, REPOSITORY_NAME)
+    session = requests.Session()
+    # self.user_login()
+    session.auth = (USERNAME, PASSWORD)
+    issue = {'title': msg,
+             'body': body}
+    payload = json.dumps(issue)
+    # response = requests.request("POST", url, data=payload)
+    response = session.post(url, payload)
+    if response.status_code == 201:
+        api.send_message('Successfully created Issue {0:s}'.format(msg), chat)
+    else:
+        api.send_message('Could not create Issue {0:s}'.format(msg), chat)
+        print ('Response:', response.content)
 
 
 if __name__ == '__main__':
