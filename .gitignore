@@ -1,5 +1,6 @@
 db.sqlite3
 token.txt
+login.txt
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
@@ -112,4 +113,3 @@ Session.vim
 *~
 # auto-generated tag files
 tags
-
