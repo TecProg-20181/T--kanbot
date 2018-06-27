@@ -88,7 +88,7 @@ class Api:
 
         return max(update_ids)
 
-    @contract(msg='str', chat='str', status='str', returns='NoneType')
+    @contract(msg='str', chat='int', status='str', returns='NoneType')
     def handle_status_change(self, msg, chat, status):
         response_list = self.controller.change_multiple(msg, chat, status)
         for response in response_list:
@@ -257,7 +257,7 @@ class TasksController:
             db.session.commit()
             return "Task [[{}]] deleted".format(task_id)
 
-    @contract(msg='str', chat='int', new_status='str', returns='str')
+    @contract(msg='str', chat='int', new_status='str', returns='list')
     def change_multiple(self, msg, chat, new_status):
         tasks = msg.split(' ')
         responses = []
@@ -293,7 +293,7 @@ class TasksController:
 
         return ''
 
-    @contract(chat='str', returns='str')
+    @contract(chat='int', returns='str')
     def list_overdue(self, chat):
         tasks = ''
         overdue = True
@@ -303,7 +303,7 @@ class TasksController:
 
         return tasks
 
-    @contract(chat='str', status='str', returns='str')
+    @contract(chat='int', status='str', returns='str')
     def filter_by_status(self, chat, status):
         """This function orders the tasks using the status."""
         tasks = ''
@@ -313,7 +313,7 @@ class TasksController:
             tasks += '[[{}]] {}\n'.format(task.id, task.name)
         return tasks
 
-    @contract(chat='str', priority='str', returns='str')
+    @contract(chat='int', priority='str', returns='str')
     def filter_by_priority(self, chat, priority):
         """This method orders tasks by their priority."""
         tasks = ''
@@ -322,7 +322,7 @@ class TasksController:
             tasks += '[[{}]] {}\n'.format(task.id, task.name)
         return tasks
 
-    @contract(chat='str', returns='str')
+    @contract(chat='int', returns='str')
     def list_default(self, chat):
         task_list = ''
 
@@ -357,7 +357,7 @@ class TasksController:
 
         return task_list
 
-    @contract(chat='str', returns='str')
+    @contract(chat='int', returns='str')
     def list_by_status(self, chat):
         tasks_by_status = ''
 
@@ -373,7 +373,7 @@ class TasksController:
 
         return tasks_by_status
 
-    @contract(chat='str', returns='str')
+    @contract(chat='int', returns='str')
     def list_by_priority(self, chat):
         tasks_by_priority = ''
 
@@ -387,7 +387,7 @@ class TasksController:
 
         return tasks_by_priority
 
-    @contract(msg='str', chat='str', returns='str')
+    @contract(msg='str', chat='int', returns='list')
     def list_tasks(self, msg, chat):
         """This function lists the tasks."""
         task_list = ''
@@ -406,7 +406,7 @@ class TasksController:
         return list_messages
 
     @classmethod
-    @contract(msg='str', chat='str', returns='str')
+    @contract(msg='str', chat='int', returns='str')
     def depends_on(cls, msg, chat):
         """This function controls the task dependencies."""
         text = ''
@@ -458,7 +458,7 @@ class TasksController:
             return "Task {} dependencies up to date".format(task_id)
 
     @classmethod
-    @contract(msg='str', chat='str', returns='str')
+    @contract(msg='str', chat='int', returns='str')
     def set_priority(cls, msg, chat):
         """This function controls the task priority."""
         text = ''
@@ -489,7 +489,7 @@ class TasksController:
             db.session.commit()
 
     @classmethod
-    @contract(msg='str', chat='str', returns='str')
+    @contract(msg='str', chat='int', returns='str')
     def set_duedate(cls, msg, chat):
         """This function controls the task duedate."""
         text = ''
@@ -533,7 +533,7 @@ class TasksController:
                     return "*Task {}* duedate has priority *{}*".format(task_id, duedate)
 
 
-
+@contract(task='str', task_dependecy='int', returns='bool')
 def dependency_exist(task, task_dependecy):
     query = db.session.query(Task).filter_by(id=task)
     task_dep = query.one()
@@ -541,6 +541,7 @@ def dependency_exist(task, task_dependecy):
 
     return str(task_dependecy) in dependencies_task
 
+@contract(task='Hashable', chat='int', preceed='str', returns='str')
 def deps_text(task, chat, preceed=''):
     text = ''
 
@@ -573,13 +574,14 @@ REPOSITORY_NAME='T--kanbot'
 USERNAME = ''
 PASSWORD = ''
 
-
+@contract(returns='list')
 def user_login():
     """This function gets the bot login."""
     with open('login.txt') as login_file:
         login = login_file.read().split('\n')
         return login
 
+@contract(msg='str', chat='int', body='str', returns='None')
 def create_issue(msg, chat, body=None):
     """This function creates an issue on github."""
     
