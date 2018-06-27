@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 """This code controls a telegram bot. This bot is a kanban."""
 import json
 import time
