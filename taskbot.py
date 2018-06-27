@@ -166,6 +166,7 @@ class TasksController:
     """This class controls the tasks."""
 
     @classmethod
+    @contract(msg='str', chat='int', returns='str')
     def new_task(cls, msg, chat):
         """This function creates the new tasks."""
         task = Task(chat=chat, name=msg, status='TODO', dependencies='', parents='', priority='')
@@ -174,6 +175,7 @@ class TasksController:
         return "New task *TODO* [[{}]] {}".format(task.id, task.name)
 
     @classmethod
+    @contract(msg='str', chat='int', returns='str')
     def rename_task(cls, msg, chat):
         """This function changes the task name."""
         text = ''
@@ -203,6 +205,7 @@ class TasksController:
             return "Task {} redefined from {} to {}".format(task_id, old_text, text)
 
     @classmethod
+    @contract(msg='str', chat='int', returns='str')
     def duplicate_task(cls, msg, chat):
         """This function duplicates the task."""
         if not msg.isdigit():
@@ -234,6 +237,7 @@ class TasksController:
             return "New task *TODO* [[{}]] {}".format(dtask.id, dtask.name)
 
     @classmethod
+    @contract(msg='str', chat='int', returns='str')
     def delete_task(cls, msg, chat):
         """This function deletes tasks."""
         if not msg.isdigit():
@@ -253,6 +257,7 @@ class TasksController:
             db.session.commit()
             return "Task [[{}]] deleted".format(task_id)
 
+    @contract(msg='str', chat='int', new_status='str', returns='str')
     def change_multiple(self, msg, chat, new_status):
         tasks = msg.split(' ')
         responses = []
@@ -261,6 +266,7 @@ class TasksController:
             responses.append(response)
         return responses
 
+    @contract(msg='str', chat='int', new_status='str', returns='str')
     def change_status(self, msg, chat, new_status):
         """This function changes the task status."""
         if not msg.isdigit():
@@ -276,6 +282,7 @@ class TasksController:
             db.session.commit()
             return "*{}* task [[{}]] {}".format(new_status, task.id, task.name)
 
+    @contract(task='str', returns='str')
     def get_priority(self, task):
         if task.priority == 'low':
             return '\U00002755'
@@ -286,6 +293,7 @@ class TasksController:
 
         return ''
 
+    @contract(chat='str', returns='str')
     def list_overdue(self, chat):
         tasks = ''
         overdue = True
@@ -295,6 +303,7 @@ class TasksController:
 
         return tasks
 
+    @contract(chat='str', status='str', returns='str')
     def filter_by_status(self, chat, status):
         """This function orders the tasks using the status."""
         tasks = ''
@@ -304,6 +313,7 @@ class TasksController:
             tasks += '[[{}]] {}\n'.format(task.id, task.name)
         return tasks
 
+    @contract(chat='str', priority='str', returns='str')
     def filter_by_priority(self, chat, priority):
         """This method orders tasks by their priority."""
         tasks = ''
@@ -312,6 +322,7 @@ class TasksController:
             tasks += '[[{}]] {}\n'.format(task.id, task.name)
         return tasks
 
+    @contract(chat='str', returns='str')
     def list_default(self, chat):
         task_list = ''
 
@@ -346,6 +357,7 @@ class TasksController:
 
         return task_list
 
+    @contract(chat='str', returns='str')
     def list_by_status(self, chat):
         tasks_by_status = ''
 
@@ -361,6 +373,7 @@ class TasksController:
 
         return tasks_by_status
 
+    @contract(chat='str', returns='str')
     def list_by_priority(self, chat):
         tasks_by_priority = ''
 
@@ -374,6 +387,7 @@ class TasksController:
 
         return tasks_by_priority
 
+    @contract(msg='str', chat='str', returns='str')
     def list_tasks(self, msg, chat):
         """This function lists the tasks."""
         task_list = ''
@@ -392,6 +406,7 @@ class TasksController:
         return list_messages
 
     @classmethod
+    @contract(msg='str', chat='str', returns='str')
     def depends_on(cls, msg, chat):
         """This function controls the task dependencies."""
         text = ''
@@ -443,6 +458,7 @@ class TasksController:
             return "Task {} dependencies up to date".format(task_id)
 
     @classmethod
+    @contract(msg='str', chat='str', returns='str')
     def set_priority(cls, msg, chat):
         """This function controls the task priority."""
         text = ''
@@ -473,6 +489,7 @@ class TasksController:
             db.session.commit()
 
     @classmethod
+    @contract(msg='str', chat='str', returns='str')
     def set_duedate(cls, msg, chat):
         """This function controls the task duedate."""
         text = ''
