@@ -555,21 +555,6 @@ def main():
 
         time.sleep(0.5)
         
-# class GithubApi:
-#     """This class communicates with the github api."""
-
-#     def __init__(self):
-#         self.login = self.user_login()
-#         self.repositoryOwner = 'TecProg-20181'
-#         self.repositoryName = 'T--kanbot'
-#         self.api = Api()
-
-#     def user_login(self):
-#         """This function gets the bot login."""
-#         with open('login.txt') as login_file:
-#             login = login_file.read().split('\n')
-#             return login
-
 
 REPOSITORY_OWNER='TecProg-20181'
 REPOSITORY_NAME='T--kanbot'
@@ -577,19 +562,35 @@ REPOSITORY_NAME='T--kanbot'
 USERNAME = ''
 PASSWORD = ''
 
+
+def user_login():
+    """This function gets the bot login."""
+    with open('login.txt') as login_file:
+        login = login_file.read().split('\n')
+        return login
+
 def create_issue(msg, chat, body=None):
     """This function creates an issue on github."""
     
     api = Api()
+
+    login = user_login()
+
+    USERNAME = login[0]
+    PASSWORD = login[1]
+
     url = 'https://api.github.com/repos/%s/%s/issues' % (REPOSITORY_OWNER, REPOSITORY_NAME)
+    
     session = requests.Session()
-    # self.user_login()
+
     session.auth = (USERNAME, PASSWORD)
+
     issue = {'title': msg,
              'body': body}
+
     payload = json.dumps(issue)
-    # response = requests.request("POST", url, data=payload)
     response = session.post(url, payload)
+
     if response.status_code == 201:
         api.send_message('Successfully created Issue {0:s}'.format(msg), chat)
     else:
