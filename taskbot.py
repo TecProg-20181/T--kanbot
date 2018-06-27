@@ -535,26 +535,7 @@ def deps_text(task, chat, preceed=''):
 
         text += line
 
-    return text
-
-
-
-
-def main():
-    """This function controls the bot. """
-    last_update_id = None
-    api = Api()
-
-    while True:
-        print("Updates")
-        updates = api.get_updates(last_update_id)
-
-        if updates["result"]:
-            last_update_id = api.get_last_update_id(updates) + 1
-            api.handle_updates(updates)
-
-        time.sleep(0.5)
-        
+    return text        
 
 REPOSITORY_OWNER='TecProg-20181'
 REPOSITORY_NAME='T--kanbot'
@@ -597,6 +578,20 @@ def create_issue(msg, chat, body=None):
         api.send_message('Could not create Issue {0:s}'.format(msg), chat)
         print ('Response:', response.content)
 
+def main():
+    """This function controls the bot. """
+    last_update_id = None
+    api = Api()
+
+    while True:
+        print("Updates")
+        updates = api.get_updates(last_update_id)
+
+        if updates["result"]:
+            last_update_id = api.get_last_update_id(updates) + 1
+            api.handle_updates(updates)
+
+        time.sleep(0.5)
 
 if __name__ == '__main__':
     main()
