@@ -4,11 +4,12 @@ import unittest
 from taskbot import *
 
 class TestTaskBot(unittest.TestCase):
-    id = '1'
+    id = '4'
 
     def test_anew_task(self):
         command = TasksController.new_task('TESTE', '12234')
         self.id = command[18]
+        print(command)
         self.assertEqual(command, 'New task *TODO* [[{}]] TESTE'.format(self.id))
 
     def test_delete_task(self):
