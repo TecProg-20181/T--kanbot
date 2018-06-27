@@ -13,6 +13,7 @@ import sqlalchemy
 
 import db
 from db import Task
+from contracts import contract
 
 class Api:
     """This class controls the API."""
@@ -34,26 +35,32 @@ class Api:
                     /duedate ID DATE{dd/mm/yyyy}
                     /help
                     """
+                    
     @classmethod
+    @contract(returns='str')
     def get_token(cls):
         """This function gets the bot token."""
+
         with open('token.txt') as token_file:
             token = token_file.read()
             return token
 
     @classmethod
+    @contract(url='str', returns='str')
     def get_url(cls, url):
         """This function gets the bot url."""
         response = requests.get(url)
         content = response.content.decode("utf8")
         return content
 
+    @contract(url='str', returns='str')
     def get_json_from_url(self, url):
         """This function gets de json from url."""
         content = self.get_url(url)
         json_response = json.loads(content)
         return json_response
 
+    @contract(offset='NoneType', returns='str')
     def get_updates(self, offset=None):
         """This function gets the bot updates."""
         url = self.url + "getUpdates?timeout=100"
@@ -62,6 +69,7 @@ class Api:
         json_response = self.get_json_from_url(url)
         return json_response
 
+    @contract(text='str', chat_id='int', reply_markup='NoneType', returns='None')
     def send_message(self, text, chat_id, reply_markup=None):
         """This function sends messages for the user."""
         text = urllib.parse.quote_plus(text)
@@ -71,6 +79,7 @@ class Api:
         self.get_url(url)
 
     @classmethod
+    @contract(updates='str', returns='int')
     def get_last_update_id(cls, updates):
         """This function gets the id of the last update."""
         update_ids = []
@@ -78,12 +87,13 @@ class Api:
             update_ids.append(int(update["update_id"]))
 
         return max(update_ids)
-
+    @contract(msg='str', chat='str', status='str', returns=None)
     def handle_status_change(self, msg, chat, status):
         response_list = self.controller.change_multiple(msg, chat, status)
         for response in response_list:
             self.send_message(response, chat)
 
+    @contract(updates='str', returns='None')
     def handle_updates(self, updates):
         """This function controls the updates."""
         for update in updates["result"]:
@@ -582,6 +592,7 @@ def create_issue(msg, chat, body=None):
 
 def main():
     """This function controls the bot. """
+    
     last_update_id = None
     api = Api()
 
